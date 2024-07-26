@@ -55,7 +55,7 @@ class DllItemRecordController extends ControllerBase {
     // Check if the format query parameter is set to json-ld
     if ($request->query->get('format') === 'json-ld') {
       // Load the node by unique identifier
-      $node = $this->loadNodeByIdentifier($id, 'dll_item_record');
+      $node = $this->loadNodeByIdentifier($id, 'repository_item');
       if (!$node) {
         return new JsonResponse(['error' => 'Node not found'], 404);
       }

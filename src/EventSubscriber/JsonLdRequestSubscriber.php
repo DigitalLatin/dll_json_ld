@@ -15,9 +15,6 @@ use Drupal\dll_json_ld\Service\Formatter\ItemRecordFormatter;
 use Drupal\dll_json_ld\Service\Formatter\WebPageFormatter;
 use Psr\Log\LoggerInterface;
 
-/**
- * JSON-LD request subscriber.
- */
 class JsonLdRequestSubscriber implements EventSubscriberInterface {
 
   protected $entityTypeManager;
@@ -38,25 +35,17 @@ class JsonLdRequestSubscriber implements EventSubscriberInterface {
     $this->logger = $logger;
   }
 
-  /**
-   * {@inheritdoc}
-   */
   public static function getSubscribedEvents() {
     $events[KernelEvents::REQUEST][] = ['onRequest', 0];
     return $events;
   }
 
-  /**
-   * Responds to the request event.
-   *
-   * @param \Symfony\Component\HttpKernel\Event\RequestEvent $event
-   *   The event to process.
-   */
   public function onRequest(RequestEvent $event) {
     $request = $event->getRequest();
-    $this->logger->info('Request received with query parameters: @params', ['@params' => $request->query->all()]);
+    $queryParams = $request->query->all();
+    $this->logger->info('Request received with query parameters: @params', ['@params' => json_encode($queryParams)]);
     
-    if ($request->query->get('format') === 'json-ld') {
+    if (isset($queryParams['format']) && $queryParams['format'] === 'json-ld') {
       $this->logger->info('format=json-ld detected');
       $node = $this->getNodeFromRequest($request);
       if ($node) {
@@ -73,20 +62,10 @@ class JsonLdRequestSubscriber implements EventSubscriberInterface {
     }
   }
 
-  /**
-   * Retrieves the node from the request.
-   *
-   * @param \Symfony\Component\HttpFoundation\Request $request
-   *   The request object.
-   *
-   * @return \Drupal\node\NodeInterface|null
-   *   The node entity or NULL if not found.
-   */
   protected function getNodeFromRequest($request) {
     $path = $request->getPathInfo();
     $this->logger->info('Processing path: @path', ['@path' => $path]);
 
-    // Try to resolve the node from the alias
     $alias = $this->aliasManager->getPathByAlias($path);
     if (strpos($alias, '/node/') === 0) {
       $nid = str_replace('/node/', '', $alias);
@@ -98,29 +77,16 @@ class JsonLdRequestSubscriber implements EventSubscriberInterface {
     return NULL;
   }
 
-  /**
-   * Formats the node as JSON-LD based on its content type.
-   *
-   * @param \Drupal\node\NodeInterface $node
-   *   The node entity.
-   *
-   * @return array
-   *   The JSON-LD formatted data.
-   */
   protected function formatNode(NodeInterface $node) {
     switch ($node->bundle()) {
       case 'author_authorities':
         return $this->authorAuthoritiesFormatter->format($node);
-
       case 'dll_work':
         return $this->dllWorkFormatter->format($node);
-
       case 'repository_item':
         return $this->itemRecordFormatter->format($node);
-
       case 'web_page':
         return $this->webPageFormatter->format($node);
-
       default:
         return [];
     }

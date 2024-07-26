@@ -83,7 +83,7 @@ class JsonLdRequestSubscriber implements EventSubscriberInterface {
         return $this->authorAuthoritiesFormatter->format($node);
       case 'dll_work':
         return $this->dllWorkFormatter->format($node);
-      case 'item_record':
+      case 'repository_item':
         return $this->itemRecordFormatter->format($node);
       case 'web_page':
         return $this->webPageFormatter->format($node);

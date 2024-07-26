@@ -14,6 +14,7 @@ This module was composed by Samuel J. Huskey.
 
 ## File and Directory Structure
 
+```
 dll_json_ld/
 ├── src/
 │   ├── Controller/
@@ -37,4 +38,4 @@ dll_json_ld/
 ├── dll_json_ld.routing.yml
 ├── dll_json_ld.info.yml
 └── dll_json_ld.services.yml
-
+```

@@ -6,8 +6,9 @@ use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\dll_json_ld\Service\JsonLdFormatter;
+use Drupal\dll_json_ld\Service\Formatter\DllWorkFormatter;
 use Drupal\node\Entity\Node;
+use Drupal\Core\Cache\CacheableMetadata;
 
 /**
  * Controller for rendering JSON-LD output for DLL Work.
@@ -17,18 +18,18 @@ class DllWorkController extends ControllerBase {
   /**
    * The JSON-LD formatter service.
    *
-   * @var \Drupal\dll_json_ld\Service\JsonLdFormatter
+   * @var \Drupal\dll_json_ld\Service\Formatter\DllWorkFormatter
    */
-  protected $jsonLdFormatter;
+  protected $dllWorkFormatter;
 
   /**
    * Constructs a DllWorkController object.
    *
-   * @param \Drupal\dll_json_ld\Service\JsonLdFormatter $jsonLdFormatter
+   * @param \Drupal\dll_json_ld\Service\Formatter\DllWorkFormatter $dllWorkFormatter
    *   The JSON-LD formatter service.
    */
-  public function __construct(JsonLdFormatter $jsonLdFormatter) {
-    $this->jsonLdFormatter = $jsonLdFormatter;
+  public function __construct(DllWorkFormatter $dllWorkFormatter) {
+    $this->dllWorkFormatter = $dllWorkFormatter;
   }
 
   /**
@@ -36,7 +37,7 @@ class DllWorkController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('dll_json_ld.json_ld_formatter')
+      $container->get('dll_json_ld.dll_work_formatter')
     );
   }
 
@@ -61,10 +62,18 @@ class DllWorkController extends ControllerBase {
       }
 
       // Use the service to format the node as JSON-LD
-      $data = $this->jsonLdFormatter->format($node);
+      $data = $this->dllWorkFormatter->format($node);
 
       // Return the JSON-LD data as a JSON response
       return new JsonResponse($data);
+
+      // Add cache metadata
+      $cache_metadata = new CacheableMetadata();
+      $cache_metadata->addCacheTags(['node:' . $node->id()]);
+      $cache_metadata->addCacheContexts(['url.query_args:format']);
+      $cache_metadata->applyTo($response);
+
+      $event->setResponse($response);
     }
 
     // If format is not json-ld, return an error

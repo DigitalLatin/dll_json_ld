@@ -6,8 +6,9 @@ use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Drupal\dll_json_ld\Service\JsonLdFormatter;
+use Drupal\dll_json_ld\Service\Formatter\WebPageFormatter;
 use Drupal\node\Entity\Node;
+use Drupal\Core\Cache\CacheableMetadata;
 
 /**
  * Controller for rendering JSON-LD output for Web Page.
@@ -17,18 +18,18 @@ class DllWebPageController extends ControllerBase {
   /**
    * The JSON-LD formatter service.
    *
-   * @var \Drupal\dll_json_ld\Service\JsonLdFormatter
+   * @var \Drupal\dll_json_ld\Service\Formatter\WebPageFormatter
    */
-  protected $jsonLdFormatter;
+  protected $webPageFormatter;
 
   /**
    * Constructs a DllWebPageController object.
    *
-   * @param \Drupal\dll_json_ld\Service\JsonLdFormatter $jsonLdFormatter
+   * @param \Drupal\dll_json_ld\Service\Formatter\WebPageFormatter $webPageFormatter
    *   The JSON-LD formatter service.
    */
-  public function __construct(JsonLdFormatter $jsonLdFormatter) {
-    $this->jsonLdFormatter = $jsonLdFormatter;
+  public function __construct(WebPageFormatter $webPageFormatter) {
+    $this->webPageFormatter = $webPageFormatter;
   }
 
   /**
@@ -36,7 +37,7 @@ class DllWebPageController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('dll_json_ld.json_ld_formatter')
+      $container->get('dll_json_ld.web_page_formatter')
     );
   }
 
@@ -55,16 +56,24 @@ class DllWebPageController extends ControllerBase {
     // Check if the format query parameter is set to json-ld
     if ($request->query->get('format') === 'json-ld') {
       // Load the node by unique identifier
-      $node = $this->loadNodeByIdentifier($id, 'dll_web_page');
+      $node = $this->loadNodeByIdentifier($id, 'web_page');
       if (!$node) {
-        return new JsonResponse(['error' => 'Node not found'], 404);
+        return new CacheableJsonResponse(['error' => 'Node not found'], 404);
       }
 
       // Use the service to format the node as JSON-LD
-      $data = $this->jsonLdFormatter->format($node);
+      $data = $this->webPageFormatter->format($node);
 
       // Return the JSON-LD data as a JSON response
       return new JsonResponse($data);
+
+      // Add cache metadata
+      $cache_metadata = new CacheableMetadata();
+      $cache_metadata->addCacheTags(['node:' . $node->id()]);
+      $cache_metadata->addCacheContexts(['url.query_args:format']);
+      $cache_metadata->applyTo($response);
+
+      $event->setResponse($response);
     }
 
     // If format is not json-ld, return an error

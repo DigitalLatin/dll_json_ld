@@ -1,9 +1,14 @@
 <?php
 
-namespace Drupal\dll_json_ld\Service\Formatter;
+namespace Drupal\dll_json_ld\Controller;
 
-use Drupal\node\NodeInterface;
-use Drupal\dll_json_ld\Service\JsonLdFormatter;
+use Drupal\Core\Controller\ControllerBase;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Drupal\dll_json_ld\Service\Formatter\AuthorAuthoritiesFormatter;
+use Drupal\node\Entity\Node;
+use Drupal\Core\Cache\CacheableMetadata;
 
 /**
  * Controller for rendering JSON-LD output for Author Authorities.
@@ -13,18 +18,18 @@ class AuthorAuthoritiesController extends ControllerBase {
   /**
    * The JSON-LD formatter service.
    *
-   * @var \Drupal\dll_json_ld\Service\JsonLdFormatter
+   * @var \Drupal\dll_json_ld\Service\Formatter\AuthorAuthoritiesFormatter
    */
-  protected $jsonLdFormatter;
+  protected $authorAuthoritiesFormatter;
 
   /**
-   * Constructs a AuthorAuthoritiesController object.
+   * Constructs an AuthorAuthoritiesController object.
    *
-   * @param \Drupal\dll_json_ld\Service\JsonLdFormatter $jsonLdFormatter
+   * @param \Drupal\dll_json_ld\Service\Formatter\AuthorAuthoritiesFormatter $authorAuthoritiesFormatter
    *   The JSON-LD formatter service.
    */
-  public function __construct(JsonLdFormatter $jsonLdFormatter) {
-    $this->jsonLdFormatter = $jsonLdFormatter;
+  public function __construct(AuthorAuthoritiesFormatter $authorAuthoritiesFormatter) {
+    $this->authorAuthoritiesFormatter = $authorAuthoritiesFormatter;
   }
 
   /**
@@ -32,7 +37,7 @@ class AuthorAuthoritiesController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('dll_json_ld.json_ld_formatter')
+      $container->get('dll_json_ld.author_authorities_formatter')
     );
   }
 
@@ -57,10 +62,18 @@ class AuthorAuthoritiesController extends ControllerBase {
       }
 
       // Use the service to format the node as JSON-LD
-      $data = $this->jsonLdFormatter->format($node);
+      $data = $this->authorAuthoritiesFormatter->format($node);
 
       // Return the JSON-LD data as a JSON response
       return new JsonResponse($data);
+
+      // Add cache metadata
+      $cache_metadata = new CacheableMetadata();
+      $cache_metadata->addCacheTags(['node:' . $node->id()]);
+      $cache_metadata->addCacheContexts(['url.query_args:format']);
+      $cache_metadata->applyTo($response);
+
+      $event->setResponse($response);
     }
 
     // If format is not json-ld, return an error

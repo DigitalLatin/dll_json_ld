@@ -8,11 +8,12 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\dll_json_ld\Service\JsonLdFormatter;
 use Drupal\node\Entity\Node;
+use Drupal\Core\Cache\CacheableJsonResponse;
 
 /**
- * Controller for rendering JSON-LD output for Web Page.
+ * Controller for rendering JSON-LD output.
  */
-class DllWebPageController extends ControllerBase {
+class JsonLdController extends ControllerBase {
 
   /**
    * The JSON-LD formatter service.
@@ -22,7 +23,7 @@ class DllWebPageController extends ControllerBase {
   protected $jsonLdFormatter;
 
   /**
-   * Constructs a DllWebPageController object.
+   * Constructs a JsonLdController object.
    *
    * @param \Drupal\dll_json_ld\Service\JsonLdFormatter $jsonLdFormatter
    *   The JSON-LD formatter service.
@@ -47,28 +48,32 @@ class DllWebPageController extends ControllerBase {
    *   The current request.
    * @param string $id
    *   The unique identifier for the content.
+   * @param string $content_type
+   *   The content type.
    *
    * @return \Symfony\Component\HttpFoundation\JsonResponse
    *   The JSON-LD response.
    */
-  public function view(Request $request, $id) {
+  public function view(Request $request, $id, $content_type) {
     // Check if the format query parameter is set to json-ld
     if ($request->query->get('format') === 'json-ld') {
       // Load the node by unique identifier
-      $node = $this->loadNodeByIdentifier($id, 'dll_web_page');
+      $node = $this->loadNodeByIdentifier($id, $content_type);
       if (!$node) {
-        return new JsonResponse(['error' => 'Node not found'], 404);
+        return new CacheableJsonResponse(['error' => 'Node not found'], 404);
       }
 
       // Use the service to format the node as JSON-LD
       $data = $this->jsonLdFormatter->format($node);
 
-      // Return the JSON-LD data as a JSON response
-      return new JsonResponse($data);
+      // Create the JSON response
+      $response = new CacheableJsonResponse($data);
+      $response->addCacheableDependency($node);
+      return $response;
     }
 
     // If format is not json-ld, return an error
-    return new JsonResponse(['error' => 'Invalid format'], 400);
+    return new CacheableJsonResponse(['error' => 'Invalid format'], 400);
   }
 
   /**

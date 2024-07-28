@@ -42,52 +42,37 @@ class JsonLdRequestSubscriber implements EventSubscriberInterface {
   }
 
   /**
-   * Responds to the request event.
-   *
-   * @param \Symfony\Component\HttpKernel\Event\RequestEvent $event
-   *   The event to process.
-   */
-  public function onRequest(RequestEvent $event) {
-    $request = $event->getRequest();
-    $this->logger->info('Request received with query parameters: @params', ['@params' => $request->query->all()]);
+ * Responds to the request event.
+ *
+ * @param \Symfony\Component\HttpKernel\Event\RequestEvent $event
+ *   The event to process.
+ */
+public function onRequest(RequestEvent $event) {
+  $request = $event->getRequest();
+  $this->logger->info('Request received with query parameters: @params', ['@params' => $request->query->all()]);
 
-    if ($request->query->get('format') === 'json-ld') {
-      $this->logger->info('format=json-ld detected');
-      $node = $this->getNodeFromRequest($request);
-      if ($node) {
-        $this->logger->info('Node found: @nid', ['@nid' => $node->id()]);
-        $this->logger->info('Node bundle: @bundle', ['@bundle' => $node->bundle()]);
-        $response_data = $this->jsonLdFormatter->format($node);
-        $this->logger->info('Formatted JSON-LD response: @response', ['@response' => json_encode($response_data)]);
+  if ($request->query->get('format') === 'json-ld') {
+    $this->logger->info('format=json-ld detected');
+    $node = $this->getNodeFromRequest($request);
+    if ($node) {
+      $this->logger->info('Node found: @nid', ['@nid' => $node->id()]);
+      $this->logger->info('Node bundle: @bundle', ['@bundle' => $node->bundle()]);
+      $response_data = $this->jsonLdFormatter->format($node);
+      $this->logger->info('Formatted JSON-LD response: @response', ['@response' => json_encode($response_data)]);
 
-        // Create the JSON response
-        $response = new JsonResponse($response_data);
+      // Create the JSON response
+      $response = new JsonResponse($response_data);
 
-        // Add cache metadata
-        $cache_metadata = new CacheableMetadata();
-        $cache_metadata->addCacheTags(['node:' . $node->id()]);
-        $cache_metadata->addCacheContexts(['url.query_args:format']);
-        $cache_metadata->setCacheMaxAge(0); // Disable caching
-
-        // Log cache metadata details
-        $this->logger->info('Cache Tags: @tags', ['@tags' => implode(', ', $cache_metadata->getCacheTags())]);
-        $this->logger->info('Cache Contexts: @contexts', ['@contexts' => implode(', ', $cache_metadata->getCacheContexts())]);
-        $this->logger->info('Cache Max-Age: @maxage', ['@maxage' => $cache_metadata->getCacheMaxAge()]);
-
-        // Attach cache metadata to the response
-        $response->headers->set('X-Drupal-Cache-Tags', implode(' ', $cache_metadata->getCacheTags()));
-        $response->headers->set('X-Drupal-Cache-Contexts', implode(' ', $cache_metadata->getCacheContexts()));
-        $response->headers->set('X-Drupal-Cache-Max-Age', $cache_metadata->getCacheMaxAge());
-
-        // Set the response
-        $event->setResponse($response);
-      } else {
-        $this->logger->warning('No node found for the given request.');
-      }
+      // Set the response
+      $event->setResponse($response);
     } else {
-      $this->logger->info('format=json-ld not detected');
+      $this->logger->warning('No node found for the given request.');
     }
+  } else {
+    $this->logger->info('format=json-ld not detected');
   }
+}
+
 
   /**
    * Retrieves the node from the request.

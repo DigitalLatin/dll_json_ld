@@ -46,7 +46,7 @@ class JsonLdRequestSubscriber implements EventSubscriberInterface {
  */
 public function onRequest(RequestEvent $event) {
   $request = $event->getRequest();
-  $this->logger->info('Request received with query parameters: @params', ['@params' => $request->query->all()]);
+  //$this->logger->info('Request received with query parameters: @params', ['@params' => $request->query->all()]);
 
   if ($request->query->get('format') === 'json-ld') {
     //$this->logger->info('format=json-ld detected');
